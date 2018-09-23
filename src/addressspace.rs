@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use goblin::*;
 use goblin::elf::*;
-use dot::*;
 
 use std::io;
 use std::io::prelude::*;

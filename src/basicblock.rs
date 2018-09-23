@@ -1,5 +1,4 @@
 use std::collections::*;
-use std::borrow::Cow;
 use std::io::Write;
 use std::fmt::*;
 use dot::*;
@@ -43,17 +42,17 @@ impl<Ins : Instruction + Display> Display for BasicBlock<Ins> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CFG<Ins: Instruction> {
-    pub entrypoint : u64,
-    pub graph : BTreeMap<u64, BasicBlock<Ins>>
+    entrypoint : u64,
+    graph : BTreeMap<u64, BasicBlock<Ins>>
 }
 
 impl<Ins: Instruction + Clone> CFG<Ins> {
-    pub fn from_asmspace(space : AsmSpace<Ins>, entrypoint : u64) -> Self {
+    pub fn from_asmspace<InsFactory : InstructionFactory<Ins=Ins>>(space : AsmSpace<Ins, InsFactory>, entrypoint : u64) -> Self {
         let mut prevs_map : BTreeMap<u64, Vec<u64>> = BTreeMap::new();
 
-        for ins in space.space.values() {
+        for ins in space.instructions() {
             for &next in &ins.nexts() {
                 let mut prevs = prevs_map.entry(next).or_insert(Vec::new());
                 prevs.push(ins.address());
@@ -65,12 +64,12 @@ impl<Ins: Instruction + Clone> CFG<Ins> {
         let mut graph = BTreeMap::new();
 
         while let Some(addr) = queue.pop() {
-            if let Some(first_ins) = space.space.get(&addr){
+            if let Some(first_ins) = space.get(addr){
                 let first_ins_prevs = prevs_map.entry(addr).or_insert(Vec::new()).clone();
                 let mut bb = BasicBlock::new(first_ins.clone(), &first_ins_prevs);
                 while bb.nexts().len() == 1 {
                     let next = bb.nexts()[0];
-                    if let Some(ins) = space.space.get(&next) {
+                    if let Some(ins) = space.get(next) {
                         if let Some(prevs) = prevs_map.get(&next) {
                             if prevs.len() <= 1 {
                                 bb.push_ins(ins.clone());
@@ -100,6 +99,17 @@ impl<Ins: Instruction + Clone> CFG<Ins> {
     }
 
 }
+
+impl<Ins : Instruction + Display> Display for CFG<Ins> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        for bb in self.graph.values() {
+            write!(f, "{}\n", bb)?;
+        }
+        Ok(())
+    }
+        
+}
+
 impl<Ins : Instruction + Display> CFG<Ins> {
     pub fn render_to<W: Write>(&self, output: &mut W) {
         render(self, output).unwrap()
@@ -130,7 +140,7 @@ impl<'a, Ins: Instruction + Display> GraphWalk<'a, Nd, Ed> for CFG<Ins> {
 
 impl<'a, Ins: Instruction + Display> Labeller<'a, Nd, Ed> for CFG<Ins> {
     fn graph_id(&'a self) -> Id<'a> {
-        Id::new("example1").unwrap()
+        Id::new("CFG").unwrap()
     }
 
     fn node_id(&'a self, n: &Nd) -> Id<'a> {

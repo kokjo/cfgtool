@@ -7,23 +7,23 @@ extern crate goblin;
 pub mod addressspace;
 pub mod basicblock;
 pub mod instruction;
+pub mod x86;
 
 use std::env;
 use std::io::prelude::*;
 use std::fs::File;
-use std::fmt::*;
 
 use addressspace::*;
 use basicblock::*;
 use instruction::*;
+use x86::*;
 
 fn example<AS:AddressSpace>(space: AS, entrypoint:u64) -> CFG<X86Instruction> {
-    let asmspace = AsmSpace::disassemble_all(&space, entrypoint);
+    let asmspace : AsmSpace<X86Instruction, X86InstructionFactory> =
+        AsmSpace::disassemble_all(&space, entrypoint);
     let cfg : CFG<X86Instruction> = CFG::from_asmspace(asmspace, entrypoint);
 
-    for bb in cfg.graph.values() {
-        println!("{}", bb);
-    }
+    println!("{}", cfg);
 
     cfg
 }
