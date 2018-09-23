@@ -1,0 +1,9 @@
+[package]
+name = "cfgtool"
+version = "0.1.0"
+authors = ["Jonas Rudloff <jonas.t.rudloff@gmail.com>"]
+
+[dependencies]
+capstone = "0.4.0"
+dot = "0.1.4"
+goblin = "0.0.17"
